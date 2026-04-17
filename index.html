@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="Rewind-IL: Online Failure Detection and State Respawning for Imitation Learning">
+  <meta name="keywords" content="Robotics, Imitation Learning, Failure Detection, State Respawning">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rewind-IL: Online Failure Detection and State Respawning for Imitation Learning</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <!-- Resource hints for performance optimization -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+  <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+  <link rel="dns-prefetch" href="https://unpkg.com">
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-carousel@4.0.3/dist/css/bulma-carousel.min.css">
+  <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+                "lil-gui": "https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js",
+                "js-yaml": "https://unpkg.com/js-yaml@4.1.0/dist/js-yaml.mjs"
+            }
+        }
+    </script>
+
+  <style>
+    body {
+      font-family: 'Noto Sans', sans-serif;
+    }
+
+    .title.is-1 {
+      font-family: 'Google Sans', sans-serif;
+      font-weight: 600;
+    }
+
+    .publication-title {
+      font-family: 'Google Sans', sans-serif;
+    }
+
+    .publication-authors {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 1.2rem;
+    }
+
+    .author-block {
+      margin-right: 1.5em;
+    }
+
+    .publication-venue {
+      font-family: 'Google Sans', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .publication-links {
+      margin-top: 10px;
+    }
+
+    .publication-links .link-block {
+      margin-right: 10px;
+      display: inline-block;
+    }
+
+    .hero-body {
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+    }
+
+    .teaser .hero-body {
+      padding-top: 0;
+      padding-bottom: 3rem;
+    }
+
+    .results-carousel {
+      overflow: hidden;
+    }
+
+    .results-carousel .item {
+      margin: 5px;
+      overflow: hidden;
+      border: 1px solid #dbdbdb;
+      border-radius: 10px;
+    }
+
+    .content h2 {
+      font-family: 'Google Sans', sans-serif;
+      margin-bottom: 1rem;
+    }
+
+    .bibtex-section {
+      background-color: #f5f5f5;
+      padding: 1.5rem;
+      border-radius: 10px;
+      overflow-x: auto;
+    }
+
+    pre {
+      background-color: transparent;
+      padding: 0;
+    }
+
+    footer {
+      padding: 3rem 0;
+      background-color: #f5f5f5;
+      margin-top: 3rem;
+    }
+
+    .interpolation-panel {
+      background: #f5f5f5;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Demo Styles */
+    #demo-app-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: auto;
+      min-height: 600px;
+      background-color: #f5f5f5;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 1rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border: 1px solid #dbdbdb;
+    }
+
+    #demo-scene-bar {
+      width: 100%;
+      height: 100px;
+      background-color: #ffffff;
+      border-bottom: 1px solid #dbdbdb;
+      display: flex;
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      align-items: center;
+      padding: 10px;
+      gap: 10px;
+    }
+
+    .demo-scene-thumbnail {
+      height: 80px;
+      width: 80px;
+      min-width: 80px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      overflow: hidden;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .demo-scene-thumbnail:hover {
+      transform: scale(1.05);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .demo-scene-thumbnail.selected {
+      border-color: #3273dc;
+      box-shadow: 0 0 0 2px rgba(50, 115, 220, 0.3);
+    }
+
+    .demo-scene-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .demo-scene-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      font-size: 10px;
+      padding: 2px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #demo-sidebar {
+      width: 100%;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+      border-top: 1px solid #dbdbdb;
+      /* Move to bottom */
+      order: 2;
+      /* Fixed height for bottom panel */
+      height: 320px;
+    }
+
+    .demo-sidebar-header {
+      padding: 10px 16px;
+      background-color: #f5f5f5;
+      border-bottom: 1px solid #dbdbdb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .demo-sidebar-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #363636;
+    }
+
+    #demo-gui-container {
+      flex: 1;
+      position: relative;
+      /* Hide vertical scroll on container */
+      overflow-y: hidden;
+      /* Allow horizontal scroll if needed */
+      overflow-x: auto;
+      display: flex;
+      /* Horizontal layout */
+      flex-direction: row;
+      align-items: flex-start;
+      padding: 10px;
+      gap: 15px;
+    }
+
+    /* lil-gui customization for light theme & horizontal layout */
+    .lil-gui {
+      --background-color: #ffffff;
+      --text-color: #363636;
+      --title-background-color: #f5f5f5;
+      --widget-color: #f0f0f0;
+      --hover-color: #e5e5e5;
+      --focus-color: #e0e0e0;
+      --number-color: #3273dc;
+      --string-color: #00947e;
+      /* Fixed width per column */
+      width: 300px;
+      min-width: 250px;
+      --font-size: 13px;
+      height: 100%;
+      overflow-y: auto;
+      border: 1px solid #dbdbdb;
+      border-radius: 4px;
+      margin-bottom: 0 !important;
+    }
+
+    /* Ensure lil-gui root behaves nicely in horizontal flex */
+    .lil-gui.root {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      width: auto !important;
+      gap: 10px;
+      background: transparent;
+    }
+
+    /* Individual folders become columns */
+    .lil-gui.root>.children>.folder {
+      width: 280px;
+      min-width: 280px;
+      border: 1px solid #dbdbdb;
+      border-radius: 4px;
+      background: #fff;
+      height: 100%;
+      /* Limit height of columns */
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    /* Hide root title/wrapper if interfering */
+    .lil-gui.root>.title {
+      display: none;
+    }
+
+    /* Fix children container in root to flow horizontally */
+    .lil-gui.root>.children {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      height: 100%;
+    }
+
+    .lil-gui .title {
+      color: #363636;
+      font-weight: 600;
+      border-bottom: 1px solid #eee;
+      /* Smaller title font */
+      font-size: 15px;
+      line-height: 20px;
+      height: 20px;
+      padding-left: 4px;
+    }
+
+    .lil-gui .controller {
+      padding-top: 2px;
+      padding-bottom: 2px;
+      height: auto;
+    }
+
+    .lil-gui .name {
+      /* Smaller label font */
+      font-size: 13px !important;
+      line-height: 16px;
+      padding-right: 5px;
+      min-height: 16px;
+    }
+
+    .lil-gui .widget {
+      font-size: 13px !important;
+      height: 20px;
+      line-height: 20px;
+    }
+
+    .lil-gui input[type="text"],
+    .lil-gui input[type="number"],
+    .lil-gui select {
+      font-size: 13px !important;
+      height: 18px;
+      margin-top: 1px;
+    }
+
+    .lil-gui button {
+      font-size: 13px !important;
+      height: 20px;
+      line-height: 18px;
+    }
+
+    #demo-main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      position: relative;
+      background-color: #f5f5f5;
+      min-height: 400px;
+      /* Move to top */
+      order: 1;
+    }
+
+    #demo-viewer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+      height: 100%;
+      align-items: center;
+      /* Limit max width for viewer */
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 1024px) {
+      #demo-viewer-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      #demo-app-container {
+        height: auto;
+      }
+
+      #demo-sidebar {
+        height: auto;
+        max-height: 400px;
+      }
+
+      #demo-gui-container {
+        /* Revert to vertical on mobile */
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .lil-gui.root>.children {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .lil-gui.root>.children>.folder {
+        width: 100%;
+        max-height: none;
+      }
+
+      #demo-viewer-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .demo-view-panel {
+      display: flex;
+      flex-direction: column;
+      background-color: #ffffff;
+      border: 1px solid #dbdbdb;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .demo-panel-header {
+      padding: 8px 12px;
+      background-color: #f5f5f5;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #dbdbdb;
+      color: #363636;
+      text-align: center;
+    }
+
+    .demo-image-container {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      position: relative;
+      /* Neutral gray for image placeholder */
+      background-color: #e0e0e0;
+      overflow: hidden;
+      background-image:
+        linear-gradient(45deg, #ccc 25%, transparent 25%),
+        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ccc 75%),
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+
+    #demo-input-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    #demo-canvas-container canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    #demo-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.9);
+      color: #363636;
+      padding: 15px 30px;
+      border-radius: 6px;
+      z-index: 1000;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      font-weight: 500;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .mask-overlay-btn {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      background: rgba(50, 115, 220, 0.8);
+      color: white;
+      border: 2px solid white;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .mask-overlay-btn:hover {
+      background: rgba(50, 115, 220, 1.0);
+      transform: translate(-50%, -50%) scale(1.1);
+      z-index: 11;
+    }
+
+    .mask-overlay-btn.inactive {
+      background: rgba(100, 100, 100, 0.6);
+      border-color: #ccc;
+    }
+
+    .mask-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      /* Match container aspect */
+      object-fit: contain;
+      mix-blend-mode: screen;
+      pointer-events: none;
+      opacity: 1.0;
+      /* Boost white just in case */
+      filter: brightness(2.0) contrast(2.0);
+    }
+
+    #demo-mask-container {
+      background: black;
+    }
+  </style>
+</head>
+
+<body>
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-widescreen">
+        <div class="columns is-centered">
+          <div class="column has-text-centered">
+            <h1 class="title is-1 publication-title">Rewind-IL: Online Failure Detection and State Respawning for
+              Imitation Learning</h1>
+          </div>
+        </div>
+      </div>
+      <br>
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column has-text-centered">
+            <div class="is-size-5 publication-authors">
+              <span class="author-block">
+                <a href="https://grahamzen.github.io/">Gehan Zheng</a><sup>1</sup></span>
+              <span class="author-block">
+                <a href="https://sjay05.github.io/">Sanjay Seenivasan</a><sup>1,2</sup></span>
+              <span class="author-block">
+                <a href="https://scholar.google.com/citations?user=vzay0DoAAAAJ&hl=en">Matthew
+                  Johnson-Roberson</a><sup>1</sup></span>
+              <span class="author-block">
+                <a href="https://www.weimingzhi.com/">Weiming Zhi</a><sup>1,3</sup></span>
+            </div>
+            <br>
+            <div class="is-size-5 publication-authors">
+              <span class="author-block"><sup>1</sup>Vanderbilt University</span>
+              <span class="author-block"><sup>2</sup>University of Waterloo</span>
+              <span class="author-block"><sup>3</sup>The University of Sydney</span>
+              <br>
+            </div>
+
+            <div class="column has-text-centered">
+              <div class="publication-links">
+                <!-- PDF Link. -->
+                <span class="link-block">
+                  <a href="" class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fas fa-file-pdf"></i>
+                    </span>
+                    <span>Paper (Coming Soon)</span>
+                  </a>
+                </span>
+                <span class="link-block">
+                  <a href="" class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                    </span>
+                    <span>arXiv (Coming Soon)</span>
+                  </a>
+                </span>
+                <!-- Code Link. -->
+                <span class="link-block">
+                  <a href="#" class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fab fa-github"></i>
+                    </span>
+                    <span>Code (Coming Soon)</span>
+                  </a>
+                </span>
+                <!-- BibTeX Link. -->
+                <!-- <span class="link-block">
+                  <a href="#BibTeX" class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fas fa-file-alt"></i>
+                    </span>
+                    <span>BibTeX</span>
+                  </a>
+                </span> -->
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hero teaser">
+    <div class="container is-max-widescreen">
+      <div class="hero-body">
+        <img src="./static/images/Rewind-IL_Main_Figure.png" alt="Rewind-IL Main Figure" style="width: 100%;" />
+        <p class="content has-text-justified is-size-6">
+          <em>Rewind-IL</em> enables visuomotor robot policies to efficiently predict and recover from task failures.
+          When the baseline policy fails, the framework rewinds to a prior state to reattempt the task successfully.
+        </p>
+      </div>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container is-max-desktop">
+      <!-- Abstract. -->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Abstract</h2>
+          <div class="content has-text-justified is-size-5.5">
+            <p>
+              Imitation learning has enabled robots to acquire complex visuomotor manipulation skills from
+              demonstrations, but deployment failures remain a major obstacle, especially for long-horizon
+              action-chunked policies. Once execution drifts off the demonstration manifold, these policies often
+              continue producing locally plausible actions without recovering from the failure. Existing runtime
+              monitors either require failure data, over-trigger under benign feature drift, or stop at failure
+              detection without providing a recovery mechanism. We present Rewind-IL, a training-free online safeguard
+              framework for generative action-chunked imitation policies. Rewind-IL combines a zero-shot failure
+              detector based on Temporal Inter-chunk Discrepancy Estimate (TIDE), calibrated with split conformal
+              prediction, with a state-respawning mechanism that returns the robot to a semantically verified safe
+              intermediate state. Offline, a vision-language model identifies recovery checkpoints in demonstrations,
+              and the frozen policy encoder is used to construct a compact checkpoint feature database. Online,
+              Rewind-IL monitors self-consistency in overlapping action chunks, tracks similarity to the checkpoint
+              library, and, upon failure, rewinds execution to the latest verified safe state before restarting
+              inference from a clean policy state. Experiments on real-world and simulated long-horizon manipulation
+              tasks, including transfer to flow-matching action-chunked policies, demonstrate that policy-internal
+              consistency coupled with semantically grounded respawning offers a practical route to reliable imitation
+              learning.
+            </p>
+          </div>
+        </div>
+      </div>
+      <!--/ Abstract. -->
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-full">
+          <h2 class="title is-3">Method Overview</h2>
+          <div class="content has-text-justified is-size-6">
+            <img src="./static/images/Rewind-IL-Main-Architecture.png" alt="Rewind-IL Architecture" style="width: 100%;"
+              loading="lazy" decoding="async">
+            <p>
+              Overview of the Rewind-IL framework. <strong>(Left) Offline Staging</strong>: Successful policy rollouts
+              are used to construct a viable CP threshold for failure detection. Concurrently, a VLM extracts meaningful
+              keyframes from demonstration videos to generate a checkpoint database. <strong>(Right) Online Policy
+                Deployment</strong>: TIDE flags failures, and the policy returns to a checkpointed state.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3 has-text-centered">Vanilla Policy vs. Rewind-IL Under Perturbed Conditions</h2>
+      <div class="columns is-centered is-variable is-8">
+        <div class="column">
+          <div class="content has-text-centered is-size-6">
+            <video autoplay controls muted loop playsinline preload="metadata" style="width: 100%; border-radius: 8px;"
+              loading="lazy">
+              <source src="./static/videos/Rewind-IL%20-%20Drawers%20and%20Hammer%20(Without).mp4" type="video/mp4">
+            </video>
+            <p>
+              ACT (Baseline) - Drawers and Hammer
+            </p>
+          </div>
+        </div>
+        <div class="column">
+          <div class="content has-text-centered is-size-6">
+            <video autoplay controls muted loop playsinline preload="metadata" style="width: 100%; border-radius: 8px;"
+              loading="lazy">
+              <source src="./static/videos/Rewind-IL%20-%20Drawers%20and%20Hammer%20(With).mp4" type="video/mp4">
+            </video>
+            <p>
+              ACT + Rewind-IL (Ours) - Drawers and Hammer
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="columns is-centered is-variable is-8">
+        <div class="column">
+          <div class="content has-text-centered is-size-6">
+            <video autoplay controls muted loop playsinline preload="metadata" style="width: 100%; border-radius: 8px;"
+              loading="lazy">
+              <source src="./static/videos/Rewind-IL%20-%20Toolbox%20and%20Knife%20(Without).mp4" type="video/mp4">
+            </video>
+            <p>
+              ACT (Baseline) - Toolbox and Knife
+            </p>
+          </div>
+        </div>
+        <div class="column">
+          <div class="content has-text-centered is-size-6">
+            <video autoplay controls muted loop playsinline preload="metadata" style="width: 100%; border-radius: 8px;"
+              loading="lazy">
+              <source src="./static/videos/Rewind-IL%20-%20Toolbox%20and%20Knife%20(With).mp4" type="video/mp4">
+            </video>
+            <p>
+              ACT + Rewind-IL (Ours) - Toolbox and Knife
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="columns is-centered is-variable is-8">
+        <div class="column">
+          <div class="content has-text-centered is-size-6">
+            <video autoplay controls muted loop playsinline preload="metadata" style="width: 100%; border-radius: 8px;"
+              loading="lazy">
+              <source src="./static/videos/Rewind-IL%20-%20Pencil%20and%20Notebook%20(Without).mp4" type="video/mp4">
+            </video>
+            <p>
+              ACT (Baseline) - Pencil and Notebook
+            </p>
+          </div>
+        </div>
+        <div class="column">
+          <div class="content has-text-centered is-size-6">
+            <video autoplay controls muted loop playsinline preload="metadata" style="width: 100%; border-radius: 8px;"
+              loading="lazy">
+              <source src="./static/videos/Rewind-IL%20-%20Pencil%20and%20Notebook%20(With).mp4" type="video/mp4">
+            </video>
+            <p>
+              ACT + Rewind-IL (Ours) - Pencil and Notebook
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3 has-text-centered">Additional ACT + Rewind-IL Rollouts</h2>
+      <div class="columns is-centered is-variable is-8">
+        <div class="column">
+          <div class="content has-text-centered is-size-6">
+            <video autoplay controls muted loop playsinline preload="metadata" style="width: 100%; border-radius: 8px;"
+              loading="lazy">
+              <source src="./static/videos/Rewind-IL%20-%20Folding%20Towel%20(With).mp4" type="video/mp4">
+            </video>
+            <p>
+              ACT + Rewind-IL (Ours) - Folding Towel
+            </p>
+          </div>
+        </div>
+        <div class="column">
+          <div class="content has-text-centered is-size-6">
+            <video autoplay controls muted loop playsinline preload="metadata" style="width: 100%; border-radius: 8px;"
+              loading="lazy">
+              <source src="./static/videos/Rewind-IL%20-%20Cup%20and%20Box%20(With).mp4" type="video/mp4">
+            </video>
+            <p>
+              ACT + Rewind-IL (Ours) - Cup and Box
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="columns is-centered is-variable is-8">
+        <div class="column is-half">
+          <div class="content has-text-centered is-size-6">
+            <video autoplay controls muted loop playsinline preload="metadata" style="width: 100%; border-radius: 8px;"
+              loading="lazy">
+              <source src="./static/videos/Rewind-IL%20-%20Box%20and%20Wrench%20(With).mp4" type="video/mp4">
+            </video>
+            <p>
+              ACT + Rewind-IL (Ours) - Box and Wrench
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3 has-text-centered">Rewind-IL in Simulation (RoboCasa)</h2>
+      <div class="columns is-centered is-variable is-8">
+        <div class="column is-one-third">
+          <div class="content has-text-centered is-size-6">
+            <video autoplay controls muted loop playsinline preload="metadata" style="width: 100%; border-radius: 8px;"
+              loading="lazy">
+              <source src="./static/videos/Rewind-IL%20-%20Open%20Stand%20Mixer%20Head%20(Robocasa).mp4"
+                type="video/mp4">
+            </video>
+            <p>
+              ACT + Rewind-IL (Ours) - Open Stand Mixer Head
+            </p>
+          </div>
+        </div>
+        <div class="column is-one-third">
+          <div class="content has-text-centered is-size-6">
+            <video autoplay controls muted loop playsinline preload="metadata" style="width: 100%; border-radius: 8px;"
+              loading="lazy">
+              <source src="./static/videos/Rewind-IL%20-%20Close%20Fridge%20(Robocasa).mp4" type="video/mp4">
+            </video>
+            <p>
+              ACT + Rewind-IL (Ours) - Close Fridge
+            </p>
+          </div>
+        </div>
+        <div class="column is-one-third">
+          <div class="content has-text-centered is-size-6">
+            <video autoplay controls muted loop playsinline preload="metadata" style="width: 100%; border-radius: 8px;"
+              loading="lazy">
+              <source src="./static/videos/Rewind-IL%20-%20Close%20Toaster%20Oven%20Door%20(Robocasa)%20.mp4"
+                type="video/mp4">
+            </video>
+            <p>
+              ACT + Rewind-IL (Ours) - Close Toaster Oven Door
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="BibTeX">
+    <div class="container is-max-desktop content">
+      <h2 class="title">BibTeX</h2>
+      <div class="bibtex-section">
+        <pre><code>
+</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="content has-text-centered">
+        <p>
+          Website template borrowed from <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a>.
+        </p>
+      </div>
+    </div>
+  </footer>
+</body>
+
+</html>
